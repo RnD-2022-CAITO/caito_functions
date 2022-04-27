@@ -9,6 +9,7 @@ module.exports = {
     "google",
   ],
   rules: {
+    semi: ["error", "always"],
     quotes: ["error", "double"],
   },
 };
