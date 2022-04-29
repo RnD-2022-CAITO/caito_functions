@@ -17,6 +17,9 @@ const gmailEmail = process.env.EMAIL;
 const gmailPassword = process.env.PASSWORD;
 const mailTransport = nodemailer.createTransport({
   service: 'gmail',
+  //host: 'smtp.gmail.com',
+  //port: 465,
+  //secure: true,
   auth: {
     user: gmailEmail,
     pass: gmailPassword,
@@ -68,8 +71,8 @@ async function sendWelcomeEmail(email, displayName) {
   mailOptions.subject = `Welcome to ${APP_NAME}!`;
   mailOptions.text = `Hey ${displayName || ''}! Welcome to ${APP_NAME}. I hope you will enjoy our service.`;
   await mailTransport.sendMail(mailOptions);
-  functions.logger.log(`New welcome email sent to: ${email}`);
-  //console.log(`New welcome email sent to: ${email}`);
+  //functions.logger.log(`New welcome email sent to: ${email}`);
+  console.log(`New welcome email sent to: ${email}`);
   return null;
 }
 
@@ -84,7 +87,7 @@ async function sendGoodbyeEmail(email, displayName) {
   mailOptions.subject = `Bye!`;
   mailOptions.text = `Hey ${displayName || ''}!, We confirm that we have deleted your ${APP_NAME} account.`;
   await mailTransport.sendMail(mailOptions);
-  functions.logger.log(`Account deletion confirmation email sent to: ${email}`);
-  //console.log(`Account deletion confirmation email sent to: ${email}`);
+  //functions.logger.log(`Account deletion confirmation email sent to: ${email}`);
+  console.log(`Account deletion confirmation email sent to: ${email}`);
   return null;
 }

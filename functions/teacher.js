@@ -24,6 +24,7 @@ exports.addTeacher = functions.https.onCall((data, context) => {
         email: data.email,
         firstName: data.firstName,
         lastName: data.lastName,
+        role: data.role,
     });
 });
 
