@@ -15,6 +15,7 @@ exports.addTeacher = functions.https.onCall((data, context) => {
             'The function must be called from an App Check verified app.')
       }
     if (!context.auth) {
+        console.log("addTeacher context:" + context);
         throw new functions.https.HttpsError (
             'unauthenticated'
         );
