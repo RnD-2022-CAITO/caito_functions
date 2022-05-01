@@ -4,24 +4,23 @@ const functions = require('firebase-functions');
 // The Firebase Admin SDK to access Firestore.
 const admin = require('firebase-admin');
 
-// on front end, use 
-// const addTeacher = firebase.functions().httpCallable('addTeacher');
-// firebase.auth().createUserWithEmailAndPassword(email, password)
-//      .then((user) =>{
-//          addRequest({
-//              uid: user.uid, email: ..., firstName: ..., lastName: ...,
-//          })
-//      })
-
 // http callable function (add a teacher). data param: uid, email, firstName, lastName
 exports.addTeacher = functions.https.onCall((data, context) => {
+    // context.app will be undefined if the request doesn't include an
+    // App Check token. (If the request includes an invalid App Check
+    // token, the request will be rejected with HTTP error 401.)
+    if (context.app == undefined) {
+        throw new functions.https.HttpsError(
+            'failed-precondition',
+            'The function must be called from an App Check verified app.')
+      }
     if (!context.auth) {
         throw new functions.https.HttpsError (
             'unauthenticated'
         );
     }
-    return admin.firestore().collection('teacher-info').doc(data.uid).set ({
-        email: data.email,
+    return admin.firestore().collection('teacher-info').doc(context.auth.uid).set ({
+        email: context.auth.token.email,
         firstName: data.firstName,
         lastName: data.lastName,
         role: data.role,
