@@ -1,12 +1,13 @@
-// these are cloud functions called from the teacher side
+// these are cloud functions called from the officer side
 // The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
 const functions = require('firebase-functions');
 
 // The Firebase Admin SDK to access Firestore.
 const admin = require('firebase-admin');
 
-// http callable function (add a teacher). data param: firstName, lastName
-exports.addTeacher = functions.https.onCall((data, context) => {
+// http callable function (add a survey of questions). 
+// data param: questions nested array(eg: 1->question, type, options)
+exports.addSurveyQuestions = functions.https.onCall((data, context) => {
     // context.app will be undefined if the request doesn't include an
     // App Check token. (If the request includes an invalid App Check
     // token, the request will be rejected with HTTP error 401.)
@@ -16,21 +17,25 @@ exports.addTeacher = functions.https.onCall((data, context) => {
             'The function must be called from an App Check verified app.')
       }
     if (!context.auth) {
-        console.log("addTeacher context:" + context);
+        console.log("addSurveyQuestions context:" + context);
         throw new functions.https.HttpsError (
             'unauthenticated'
         );
     }
-    return admin.firestore().collection('teacher-info').doc(context.auth.uid).set ({
-        email: context.auth.token.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        role: 'teacher',
+    return admin.firestore().collection('survey-question').add({
+        officerID: context.auth.uid,
+        questions: data.questions,
     });
+    /*.then(function(docRef) {
+        admin.firestore().collection('officer-info').doc(context.auth.uid).update ({
+            survey: FieldValue.arrayUnion(docRef), //push survey id into officer's survey array
+        });
+    */
 });
 
-// http callable function (retrieves a list of assigned surveys; answers part).
-exports.getAllAssignedSurveys_Answers = functions.https.onCall((data, context) => {
+// http callable function (distribute a survey to a (only one) teacher). for each teacher, add a survey-answer doc.
+// data param: questionID, teacherID
+exports.distributeSurvey = functions.https.onCall((data, context) => {
     // context.app will be undefined if the request doesn't include an
     // App Check token. (If the request includes an invalid App Check
     // token, the request will be rejected with HTTP error 401.)
@@ -45,12 +50,20 @@ exports.getAllAssignedSurveys_Answers = functions.https.onCall((data, context) =
             'unauthenticated'
         );
     }
-    return admin.firestore().collection('survey-answer').where('teacherID', '==', context.auth.uid).get();
+    return admin.firestore().collection('survey-answer').add({
+        answers: [],
+        questionID: data.questionID,
+        teacherID: data.teacherID,
+    });
+    /*.then(function(docRef) {
+        admin.firestore().collection('officer-info').doc(context.auth.uid).update ({
+            survey: FieldValue.arrayUnion(docRef), //push survey id into officer's survey array
+        });
+    */
 });
 
-// http callable function (updates an assigned survey; answers part).
-// data param: answerID, answers array
-exports.updateAssignedSurvey_Answers = functions.https.onCall((data, context) => {
+// http callable function (retrieves a list of teachers).
+exports.getAllTeachers = functions.https.onCall((data, context) => {
     // context.app will be undefined if the request doesn't include an
     // App Check token. (If the request includes an invalid App Check
     // token, the request will be rejected with HTTP error 401.)
@@ -60,17 +73,18 @@ exports.updateAssignedSurvey_Answers = functions.https.onCall((data, context) =>
             'The function must be called from an App Check verified app.')
       }
     if (!context.auth) {
-        console.log("distributeSurvey context:" + context);
+        console.log("getAllTeachers context:" + context);
         throw new functions.https.HttpsError (
             'unauthenticated'
         );
     }
-    return admin.firestore().collection('survey-answer').doc(data.answerID).update({answers: data.answers});
+    return admin.firestore().collection('teacher-info').get();
 });
 
-// http callable function (retrieves an assigned survey; questions part).
-// data param: questionID
-exports.getAssignedSurvey_Questions = functions.https.onCall((data, context) => {
+
+// http callable function (delete a teacher from teacher-info collection and auth). 
+// data param: teacherID
+exports.deleteTeacher = functions.https.onCall((data, context) => {
     // context.app will be undefined if the request doesn't include an
     // App Check token. (If the request includes an invalid App Check
     // token, the request will be rejected with HTTP error 401.)
@@ -80,10 +94,15 @@ exports.getAssignedSurvey_Questions = functions.https.onCall((data, context) => 
             'The function must be called from an App Check verified app.')
       }
     if (!context.auth) {
-        console.log("distributeSurvey context:" + context);
+        console.log("deleteTeacher context:" + context);
         throw new functions.https.HttpsError (
             'unauthenticated'
         );
     }
-    return admin.firestore().collection('survey-question').doc(data.questionID).get();
+
+    // delete user from auth
+    admin.auth().deleteUser(data.teacherID);
+    // delete user from collection
+    const doc = admin.firestore().collection('teacher-info').doc(data.teacherID);
+    return doc.delete();
 });
