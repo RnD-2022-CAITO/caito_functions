@@ -25,6 +25,7 @@ exports.addSurveyQuestions = functions.https.onCall((data, context) => {
     return admin.firestore().collection('survey-question').add({
         officerID: context.auth.uid,
         questions: data.questions,
+        createdDate: new Date(),
     });
     /*.then(function(docRef) {
         admin.firestore().collection('officer-info').doc(context.auth.uid).update ({
