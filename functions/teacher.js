@@ -40,7 +40,7 @@ exports.getAllAssignedSurveys_Answers = functions.https.onCall((data, context) =
             'The function must be called from an App Check verified app.')
       }
     if (!context.auth) {
-        console.log("distributeSurvey context:" + context);
+        console.log("getAllAssignedSurveys_Answers context:" + context);
         throw new functions.https.HttpsError (
             'unauthenticated'
         );
@@ -60,7 +60,7 @@ exports.updateAssignedSurvey_Answers = functions.https.onCall((data, context) =>
             'The function must be called from an App Check verified app.')
       }
     if (!context.auth) {
-        console.log("distributeSurvey context:" + context);
+        console.log("updateAssignedSurvey_Answers context:" + context);
         throw new functions.https.HttpsError (
             'unauthenticated'
         );
@@ -80,7 +80,7 @@ exports.getAssignedSurvey_Questions = functions.https.onCall((data, context) => 
             'The function must be called from an App Check verified app.')
       }
     if (!context.auth) {
-        console.log("distributeSurvey context:" + context);
+        console.log("getAssignedSurvey_Questions context:" + context);
         throw new functions.https.HttpsError (
             'unauthenticated'
         );
