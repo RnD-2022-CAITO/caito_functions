@@ -26,6 +26,8 @@ exports.addSurveyQuestions = functions.https.onCall((data, context) => {
         officerID: context.auth.uid,
         questions: data.questions,
         createdDate: new Date(),
+    }).then((res) => {
+        return res.id;
     });
     /*.then(function(docRef) {
         admin.firestore().collection('officer-info').doc(context.auth.uid).update ({
@@ -59,7 +61,10 @@ exports.distributeSurvey = functions.https.onCall((data, context) => {
     /*.then(function(docRef) {
         admin.firestore().collection('officer-info').doc(context.auth.uid).update ({
             survey: FieldValue.arrayUnion(docRef), //push survey id into officer's survey array
-        });
+        });.then((res) => 
+    {
+        return res.docs.map(doc => doc.data());
+    });
     */
 });
 
@@ -79,7 +84,10 @@ exports.getAllTeachers = functions.https.onCall((data, context) => {
             'unauthenticated'
         );
     }
-    return admin.firestore().collection('teacher-info').get();
+    return admin.firestore().collection('teacher-info').get().then((res) => 
+    {
+        return res.docs.map(doc => doc.data());
+    });;
 });
 
 
@@ -106,4 +114,27 @@ exports.deleteTeacher = functions.https.onCall((data, context) => {
     // delete user from collection
     const doc = admin.firestore().collection('teacher-info').doc(data.teacherID);
     return doc.delete();
+});
+
+// http callable function (retrieves officer's list of created surveys; questions part).
+exports.getAllCreatedSurveys_Questions = functions.https.onCall((data, context) => {
+    // context.app will be undefined if the request doesn't include an
+    // App Check token. (If the request includes an invalid App Check
+    // token, the request will be rejected with HTTP error 401.)
+    if (context.app == undefined) {
+        throw new functions.https.HttpsError(
+            'failed-precondition',
+            'The function must be called from an App Check verified app.')
+      }
+    if (!context.auth) {
+        console.log("getAllCreatedSurveys_Questions context:" + context);
+        throw new functions.https.HttpsError (
+            'unauthenticated'
+        );
+    }
+    return admin.firestore().collection('survey-question').where('officerID', '==', context.auth.uid).get()
+    .then((res) => 
+    {
+        return res.docs.map(doc => doc.data());
+    });
 });

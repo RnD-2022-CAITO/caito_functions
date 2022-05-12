@@ -45,7 +45,11 @@ exports.getAllAssignedSurveys_Answers = functions.https.onCall((data, context) =
             'unauthenticated'
         );
     }
-    return admin.firestore().collection('survey-answer').where('teacherID', '==', context.auth.uid).get();
+    return admin.firestore().collection('survey-answer').where('teacherID', '==', context.auth.uid).get()
+    .then((res) => 
+    {
+        return res.docs.map(doc => doc.data());
+    });;
 });
 
 // http callable function (updates an assigned survey; answers part).
@@ -85,7 +89,11 @@ exports.getAssignedSurvey_Questions = functions.https.onCall((data, context) => 
             'unauthenticated'
         );
     }
-    return admin.firestore().collection('survey-question').doc(data.questionID).get();
+    return admin.firestore().collection('survey-question').doc(data.questionID).get()
+    .then((res) => 
+    {
+        return res.data();
+    });;
 });
 
 // http callable function (retrieves the individual teacher's information).
@@ -104,5 +112,9 @@ exports.getBasicTeacherInfo = functions.https.onCall((data, context) => {
             'unauthenticated'
         );
     }
-    return admin.firestore().collection('teacher-info').doc(context.auth.uid).get();
+    return admin.firestore().collection('teacher-info').doc(context.auth.uid).get()
+    .then((res) => 
+    {
+        return res.data();
+    });;
 });
