@@ -12,7 +12,7 @@ exports.getUserInfo = functions.https.onCall( async (data, context) => {
     if (context.app == undefined) {
         throw new functions.https.HttpsError(
             'failed-precondition',
-            'The function must be called from an App Check verified app.')
+            'The function must be called from an App Check verified app.');
       }
     if (!context.auth) {
         console.log("addTeacher context:" + context);
@@ -21,14 +21,14 @@ exports.getUserInfo = functions.https.onCall( async (data, context) => {
         );
     }
 
-    const  docExists = (await db.collection("teacher-info").doc(context.auth.uid).get()).exists
+    const  docExists = (await admin.firestore().collection("teacher-info").doc(context.auth.uid).get()).exists;
 
     if(docExists){
-        await db.collection("teacher-info").doc(context.auth.uid).get().then((querySnapshot) => {
+        return admin.firestore().collection("teacher-info").doc(context.auth.uid).get().then((querySnapshot) => {
             return querySnapshot.data();
         })
     } else {
-        await db.collection("officer-info").doc(context.auth.uid).get().then((querySnapshot) => {
+        return admin.firestore().collection("officer-info").doc(context.auth.uid).get().then((querySnapshot) => {
             return querySnapshot.data();
         })
     }
