@@ -60,6 +60,34 @@ exports.sendByeEmail = functions.auth.user().onDelete((user) => {
 });
 // [END sendByeEmail]
 
+// [START sendNewSurveyEmail]
+/**
+ * Send an new survey email notification to users who has new survey to fill in
+ */
+// [START sendNewSurveyEmail]
+exports.sendNewSurveyEmail = functions.firestore.document('/{collection}/{id}') //id is survey-answers
+.onCreate((snap, context) => {
+  // [END sendNewSurveyEmail]
+    const collection = context.params.collection;
+    if (collection === 'survey-answer'){
+      admin.firestore().collection('survey-answer').doc(context.params.id).get().then((res) => 
+      {
+        //console.log("res.data().teacherID: "+res.data().teacherID);
+        admin.firestore().collection('teacher-info').doc(res.data().teacherID).get().then((res2) => 
+        {
+          //console.log("res2.data().email: "+res2.data().email);
+          //console.log("res2.data().firstName: "+res2.data().firstName);
+          //console.log("res2.data().lastName: "+res2.data().lastName);
+          const displayName = res2.data().firstName + " " + res2.data().lastName;
+          return sendNewSurveyEmail(res2.data().email, displayName);
+          // send email here
+        });
+      });
+      //return console.log("survey-answer collection detected. new doc id created is: " + context.params.id);
+    }
+  });
+  // [END sendNewSurveyEmail]
+
 // Sends a welcome email to the given user.
 async function sendWelcomeEmail(email, displayName) {
   const mailOptions = {
@@ -89,5 +117,21 @@ async function sendGoodbyeEmail(email, displayName) {
   await mailTransport.sendMail(mailOptions);
   //functions.logger.log(`Account deletion confirmation email sent to: ${email}`);
   console.log(`Account deletion confirmation email sent to: ${email}`);
+  return null;
+}
+
+// Sends a goodbye email to the given user.
+async function sendNewSurveyEmail(email, displayName) {
+  const mailOptions = {
+    from: `${APP_NAME} <noreply@firebase.com>`,
+    to: email,
+  };
+
+  // The user unsubscribed to the newsletter.
+  mailOptions.subject = `New Survey!`;
+  mailOptions.text = `Hey ${displayName || ''}!, We're notifying that you have a new survey in your ${APP_NAME} account to fill in.`;
+  await mailTransport.sendMail(mailOptions);
+  //functions.logger.log(`Account deletion confirmation email sent to: ${email}`);
+  console.log(`New survey notification email sent to: ${email}`);
   return null;
 }

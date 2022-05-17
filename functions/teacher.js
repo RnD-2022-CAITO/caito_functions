@@ -29,6 +29,27 @@ exports.addTeacher = functions.https.onCall((data, context) => {
     });
 });
 
+// http callable function (add a bio section). data param: sectionName, sectionData
+exports.addBioSection = functions.https.onCall((data, context) => {
+    // context.app will be undefined if the request doesn't include an
+    // App Check token. (If the request includes an invalid App Check
+    // token, the request will be rejected with HTTP error 401.)
+    if (context.app == undefined) {
+        throw new functions.https.HttpsError(
+            'failed-precondition',
+            'The function must be called from an App Check verified app.')
+      }
+    if (!context.auth) {
+        console.log("addBioSection context:" + context);
+        throw new functions.https.HttpsError (
+            'unauthenticated'
+        );
+    }
+    return admin.firestore().collection('teacher-info').doc(context.auth.uid).set({
+         [data.sectionName] : data.sectionData,
+    }, { merge: true });
+});
+
 // http callable function (retrieves a list of assigned surveys; answers part).
 exports.getAllAssignedSurveys_Answers = functions.https.onCall((data, context) => {
     // context.app will be undefined if the request doesn't include an

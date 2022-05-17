@@ -89,7 +89,7 @@ exports.getAllTeachers = functions.https.onCall((data, context) => {
     return admin.firestore().collection('teacher-info').get().then((res) => 
     {
         return res.docs.map(doc => doc.data());
-    });;
+    });
 });
 
 
