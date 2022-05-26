@@ -6,7 +6,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
 // http callable function (add a survey of questions). 
-// data param: questions nested array(eg: 1->question, type, options)
+// data param: questions nested array(eg: 1->question, type, options), title
 exports.addSurveyQuestions = functions.https.onCall((data, context) => {
     // context.app will be undefined if the request doesn't include an
     // App Check token. (If the request includes an invalid App Check
@@ -26,7 +26,6 @@ exports.addSurveyQuestions = functions.https.onCall((data, context) => {
         officerID: context.auth.uid,
         title: data.title,
         questions: data.questions,
-        scheduledDate: data.scheduledDate,
         createdDate: new Date(),
     }).then((res) => {
         return res.id;
@@ -39,7 +38,7 @@ exports.addSurveyQuestions = functions.https.onCall((data, context) => {
 });
 
 // http callable function (schedule a survey of questions to a teacher). 
-// data param: questionID, teacherID, scheduledDate
+// data param: questionID, question title, teacherID, scheduledDate
 exports.scheduleSurvey = functions.https.onCall((data, context) => {
     // context.app will be undefined if the request doesn't include an
     // App Check token. (If the request includes an invalid App Check
@@ -57,13 +56,14 @@ exports.scheduleSurvey = functions.https.onCall((data, context) => {
     }
     return admin.firestore().collection('scheduled-survey').add({
         questionID: data.questionID,
+        questionTitle: data.title,
         teacherID: data.teacherID,
         scheduledDate: data.scheduledDate,
     });
 }); // replace distributeSurvey on frontEnd // schedule a bunch of surveys // check and see if scheduled function works
 
 // schedular function to check for surveys to distribute
-exports.scheduledSurveyDistribution = functions.pubsub.schedule('every day 00:00').onRun(async (context) => {
+exports.scheduledSurveyDistribution = functions.pubsub.schedule('every 5 minutes').onRun(async (context) => {
     let documents = [];
     let ids = [];
     await admin.firestore().collection('scheduled-survey').get().then((res) => 
@@ -74,24 +74,16 @@ exports.scheduledSurveyDistribution = functions.pubsub.schedule('every day 00:00
 
     // current timestamp in milliseconds
     let ts = Date.now();
-    let date_ob = new Date(ts);
-    let date = date_ob.getDate();
-    let month = date_ob.getMonth() + 1;
-    let year = date_ob.getFullYear();
-    let today = "";
-    if (month.toString.length == 1){
-        today = year + "-0" + month + "-" + date;
-    }else if (month.toString.length == 2){
-        today = year + "-" + month + "-" + date;
-    }
-
+    let today = new Date(ts).toLocaleDateString('sv', { timeZone: 'Pacific/Auckland' });
     let index = 0;
     documents.forEach((doc) => {
         let id = String(ids.at(index));
         if (doc.scheduledDate == today){
             admin.firestore().collection('survey-answer').add({
                 answers: [],
+                isSubmitted: false,
                 questionID: doc.questionID,
+                questionTitle: doc.questionTitle,
                 teacherID: doc.teacherID,
             }).then((i) => {
                 admin.firestore().collection('scheduled-survey').doc(id).delete();
