@@ -201,6 +201,28 @@ exports.getAllCreatedSurveys_Questions = functions.https.onCall((data, context) 
     return admin.firestore().collection('survey-question').where('officerID', '==', context.auth.uid).get()
     .then((res) => 
     {
+        return res.docs.map(doc => ({id: doc.id, ...doc.data()}));
+    });
+});
+
+exports.getAllCreatedSurveys_Answers = functions.https.onCall((data, context) => {
+    // context.app will be undefined if the request doesn't include an
+    // App Check token. (If the request includes an invalid App Check
+    // token, the request will be rejected with HTTP error 401.)
+    if (context.app == undefined) {
+        throw new functions.https.HttpsError(
+            'failed-precondition',
+            'The function must be called from an App Check verified app.')
+      }
+    if (!context.auth) {
+        console.log("getAllCreatedSurveys_Questions context:" + context);
+        throw new functions.https.HttpsError (
+            'unauthenticated'
+        );
+    }
+    return admin.firestore().collection('survey-answer').where('questionID', '==', data.questionID).get()
+    .then((res) => 
+    {
         return res.docs.map(doc => doc.data());
     });
 });
