@@ -90,7 +90,10 @@ exports.updateAssignedSurvey_Answers = functions.https.onCall((data, context) =>
             'unauthenticated'
         );
     }
-    return admin.firestore().collection('survey-answer').doc(data.answerID).update({answers: data.answers});
+    return admin.firestore().collection('survey-answer').doc(data.answerID).update({
+        answers: data.answers,
+        isSubmitted: true
+    });
 });
 
 // http callable function (retrieves an assigned survey; questions part).
