@@ -63,7 +63,7 @@ exports.scheduleSurvey = functions.https.onCall((data, context) => {
 }); // replace distributeSurvey on frontEnd // schedule a bunch of surveys // check and see if scheduled function works
 
 // schedular function to check for surveys to distribute
-exports.scheduledSurveyDistribution = functions.pubsub.schedule('every 5 minutes').onRun(async (context) => {
+exports.scheduledSurveyDistribution = functions.pubsub.schedule('every 2 minutes').onRun(async (context) => {
     let documents = [];
     let ids = [];
     await admin.firestore().collection('scheduled-survey').get().then((res) => 

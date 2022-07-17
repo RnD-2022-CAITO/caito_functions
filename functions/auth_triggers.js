@@ -72,18 +72,13 @@ exports.sendNewSurveyEmail = functions.firestore.document('/{collection}/{id}') 
     if (collection === 'survey-answer'){
       admin.firestore().collection('survey-answer').doc(context.params.id).get().then((res) => 
       {
-        //console.log("res.data().teacherID: "+res.data().teacherID);
         admin.firestore().collection('teacher-info').doc(res.data().teacherID).get().then((res2) => 
         {
-          //console.log("res2.data().email: "+res2.data().email);
-          //console.log("res2.data().firstName: "+res2.data().firstName);
-          //console.log("res2.data().lastName: "+res2.data().lastName);
           const displayName = res2.data().firstName + " " + res2.data().lastName;
           return sendNewSurveyEmail(res2.data().email, displayName);
           // send email here
         });
       });
-      //return console.log("survey-answer collection detected. new doc id created is: " + context.params.id);
     }
   });
   // [END sendNewSurveyEmail]
