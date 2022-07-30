@@ -258,6 +258,29 @@ exports.deleteTeacher = functions.https.onCall((data, context) => {
     return doc.delete();
 });
 
+// http callable function (retrieves all survey templates).
+exports.getAllTemplateSurveys_Questions = functions.https.onCall((data, context) => {
+    // context.app will be undefined if the request doesn't include an
+    // App Check token. (If the request includes an invalid App Check
+    // token, the request will be rejected with HTTP error 401.)
+    if (context.app == undefined) {
+        throw new functions.https.HttpsError(
+            'failed-precondition',
+            'The function must be called from an App Check verified app.')
+      }
+    if (!context.auth) {
+        console.log("getAllCreatedSurveys_Questions context:" + context);
+        throw new functions.https.HttpsError (
+            'unauthenticated'
+        );
+    }
+    return admin.firestore().collection('template-survey-questions').get()
+    .then((res) => 
+    {
+        return res.docs.map(doc => doc.data());
+    });
+});
+
 // http callable function (retrieves officer's list of created surveys; questions part).
 exports.getAllCreatedSurveys_Questions = functions.https.onCall((data, context) => {
     // context.app will be undefined if the request doesn't include an
