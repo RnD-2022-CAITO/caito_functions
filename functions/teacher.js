@@ -26,6 +26,7 @@ exports.addTeacher = functions.https.onCall((data, context) => {
         firstName: data.firstName,
         lastName: data.lastName,
         role: 'teacher',
+        school: data.school,
     });
 });
 
