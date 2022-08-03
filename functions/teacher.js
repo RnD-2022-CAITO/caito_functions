@@ -74,6 +74,29 @@ exports.getAllAssignedSurveys_Answers = functions.https.onCall((data, context) =
     });;
 });
 
+// http callable function (retrieves a specific assigned survey; answers part).
+exports.getAssignedSurvey_Answers = functions.https.onCall((data, context) => {
+    // context.app will be undefined if the request doesn't include an
+    // App Check token. (If the request includes an invalid App Check
+    // token, the request will be rejected with HTTP error 401.)
+    if (context.app == undefined) {
+        throw new functions.https.HttpsError(
+            'failed-precondition',
+            'The function must be called from an App Check verified app.')
+      }
+    if (!context.auth) {
+        console.log("getAllAssignedSurveys_Answers context:" + context);
+        throw new functions.https.HttpsError (
+            'unauthenticated'
+        );
+    }
+    return admin.firestore().collection('survey-answer').doc(data.answerID).get()
+    .then((res) => 
+    {
+        return res.data();
+    });;
+});
+
 // http callable function (updates an assigned survey; answers part).
 // data param: answerID, answers array
 exports.updateAssignedSurvey_Answers = functions.https.onCall((data, context) => {
@@ -93,7 +116,7 @@ exports.updateAssignedSurvey_Answers = functions.https.onCall((data, context) =>
     }
     return admin.firestore().collection('survey-answer').doc(data.answerID).update({
         answers: data.answers,
-        isSubmitted: true
+        isSubmitted: data.isSubmitted
     });
 });
 

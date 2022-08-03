@@ -37,6 +37,67 @@ exports.addSurveyQuestions = functions.https.onCall((data, context) => {
     */
 });
 
+// http callable function (sends an unfinished survey reminder to teacher. avoids duplicate reminders). 
+// data param: questionID, question title, teacherID, scheduledDate
+exports.addSurveyReminder = functions.https.onCall(async (data, context) => {
+    // context.app will be undefined if the request doesn't include an
+    // App Check token. (If the request includes an invalid App Check
+    // token, the request will be rejected with HTTP error 401.)
+    if (context.app == undefined) {
+        throw new functions.https.HttpsError(
+            'failed-precondition',
+            'The function must be called from an App Check verified app.')
+      }
+    if (!context.auth) {
+        console.log("scheduleSurvey context:" + context);
+        throw new functions.https.HttpsError (
+            'unauthenticated'
+        );
+    }
+    let count = 0;
+    await admin.firestore().collection('scheduled-survey-reminder').get().then((res) => {
+        res.docs.map(doc => {
+            if (doc.data().teacherID == data.teacherID && doc.data().answerID == data.answerID){
+                ++count;
+            }
+        });
+    });
+
+    if (count == 0){
+        return admin.firestore().collection('scheduled-survey-reminder').add({
+            answerID: data.answerID, // eventually add link into email; might need answerID for url path
+            teacherID: data.teacherID,
+            expiryDate: data.expiryDate, // officer shouldn't spam; need some time frame
+        });
+    }else{
+        return "doc exists";
+    }
+});
+
+// schedular function to check for survey reminder expiry (7 days)
+exports.checkSurveyReminder = functions.pubsub.schedule('every 2 minutes').onRun(async (context) => {
+    let documents = [];
+    let ids = [];
+    await admin.firestore().collection('scheduled-survey-reminder').get().then((res) => 
+    {
+        documents = res.docs.map(doc => doc.data());
+        ids = res.docs.map(doc => doc.id);
+    });
+
+    // current timestamp in milliseconds
+    let ts = Date.now();
+    let today = new Date(ts).toLocaleDateString('sv', { timeZone: 'Pacific/Auckland' });
+    let index = 0;
+    documents.forEach((doc) => {
+        let id = String(ids.at(index));
+        if (doc.expiryDate == today){
+            admin.firestore().collection('scheduled-survey-reminder').doc(id).delete();
+        }
+        ++index;
+    });
+    return null;
+  });
+
 // http callable function (schedule a survey of questions to a teacher). 
 // data param: questionID, question title, teacherID, scheduledDate
 exports.scheduleSurvey = functions.https.onCall((data, context) => {
@@ -60,7 +121,7 @@ exports.scheduleSurvey = functions.https.onCall((data, context) => {
         teacherID: data.teacherID,
         scheduledDate: data.scheduledDate,
     });
-}); // replace distributeSurvey on frontEnd // schedule a bunch of surveys // check and see if scheduled function works
+}); // replace distributeSurvey on frontEnd // schedule a bunch of surveys
 
 // schedular function to check for surveys to distribute
 exports.scheduledSurveyDistribution = functions.pubsub.schedule('every 2 minutes').onRun(async (context) => {
@@ -148,6 +209,29 @@ exports.getAllTeachers = functions.https.onCall((data, context) => {
     });
 });
 
+// http callable function (retrieves a teacher).
+exports.getTeacher = functions.https.onCall((data, context) => {
+    // context.app will be undefined if the request doesn't include an
+    // App Check token. (If the request includes an invalid App Check
+    // token, the request will be rejected with HTTP error 401.)
+    if (context.app == undefined) {
+        throw new functions.https.HttpsError(
+            'failed-precondition',
+            'The function must be called from an App Check verified app.')
+      }
+    if (!context.auth) {
+        console.log("getAllTeachers context:" + context);
+        throw new functions.https.HttpsError (
+            'unauthenticated'
+        );
+    }
+    return admin.firestore().collection('teacher-info').doc(data.teacherID).get()
+    .then((res) => 
+    {
+        return res.data();
+    });;
+});
+
 
 // http callable function (delete a teacher from teacher-info collection and auth). 
 // data param: teacherID
@@ -172,6 +256,29 @@ exports.deleteTeacher = functions.https.onCall((data, context) => {
     // delete user from collection
     const doc = admin.firestore().collection('teacher-info').doc(data.teacherID);
     return doc.delete();
+});
+
+// http callable function (retrieves all survey templates).
+exports.getAllTemplateSurveys_Questions = functions.https.onCall((data, context) => {
+    // context.app will be undefined if the request doesn't include an
+    // App Check token. (If the request includes an invalid App Check
+    // token, the request will be rejected with HTTP error 401.)
+    if (context.app == undefined) {
+        throw new functions.https.HttpsError(
+            'failed-precondition',
+            'The function must be called from an App Check verified app.')
+      }
+    if (!context.auth) {
+        console.log("getAllCreatedSurveys_Questions context:" + context);
+        throw new functions.https.HttpsError (
+            'unauthenticated'
+        );
+    }
+    return admin.firestore().collection('template-survey-questions').get()
+    .then((res) => 
+    {
+        return res.docs.map(doc => doc.data());
+    });
 });
 
 // http callable function (retrieves officer's list of created surveys; questions part).
@@ -215,6 +322,6 @@ exports.getAllCreatedSurveys_Answers = functions.https.onCall((data, context) =>
     return admin.firestore().collection('survey-answer').where('questionID', '==', data.questionID).get()
     .then((res) => 
     {
-        return res.docs.map(doc => doc.data());
+        return res.docs.map(doc => ({id: doc.id, ...doc.data()}));
     });
 });
