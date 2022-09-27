@@ -7,8 +7,11 @@ const admin = require('firebase-admin');
 admin.initializeApp();
 
 const nodemailer = require('nodemailer');
-const gmailEmail = process.env.EMAIL;
-const gmailPassword = process.env.PASSWORD;
+//const {getEmailTemplate} = require("./email-template");
+// const gmailEmail = process.env.EMAIL;
+// const gmailPassword = process.env.PASSWORD;
+const gmailEmail = 'bcis.caito@gmail.com';
+const gmailPassword = 'yygpatgvvwaeojur';
 const mailTransport = nodemailer.createTransport({
   service: 'gmail',
   //host: 'smtp.gmail.com',
@@ -21,6 +24,78 @@ const mailTransport = nodemailer.createTransport({
 });
 
 const APP_NAME = 'enlight';
+
+//check the code matched
+exports.checkEmailValidCode = functions.https.onCall(async (data, context) => {
+  if (context.app == undefined) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'The function must be called from an App Check verified app.')
+  }
+  try {
+    const res = await admin
+      .firestore()
+      .collection("email-valid")
+      .where("email", "==", data.email)
+      .where("code", "==", data.code)
+      .get();
+    const docs = res.docs.map(doc => {
+      return {
+        ...doc.data(),
+        id: doc.id,
+      }
+    });
+    if (docs.length === 0) {
+      return {
+        emailValidPass: false
+      }
+    } else {
+      let doc = docs[0];
+      if (doc.createdTime + 1000 * 60 * 30 <= Date.now()) {
+        return {
+          emailValidPass: false
+        }
+      }
+      return {
+        emailValidPass: true
+      }
+    }
+  } catch (err) {
+    console.log('error:', err)
+    return err;
+  }
+});
+
+//send the email-code
+exports.sendEmailValidCode = functions.https.onCall( async (data, context) => {
+  if (context.app == undefined) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'The function must be called from an App Check verified app.')
+  }
+  try {
+    const code = String(100000 + Math.floor(Math.random() * 1000000));
+    await admin.firestore().collection("email-valid").add({
+      code: code,
+      email: data.email,
+      createdTime: Date.now()
+    })
+
+    const mailOptions = {
+      from: `${APP_NAME} <${gmailEmail}>`,
+      to: data.email,
+      subject: 'Sign Up Email Valid Code',
+      //html: getEmailTemplate(code)
+      html:`Hello, This is your code. + ${code}`
+    };
+
+    const res = await mailTransport.sendMail(mailOptions);
+    return res;
+  } catch (err) {
+    console.log('error:', err)
+    return err;
+  }
+})
 
 /**
  * Sends a welcome email to new user.
